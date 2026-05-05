@@ -11,7 +11,7 @@ export default function AITalentAdvisor() {
       </div>
       <div className="p-3 flex-1">
         <iframe
-          src="https://maldevta.com/embed/chat/prj_a5746e6d2deb36c65aad"
+          src="https://maldevta.com/embed?projectId=prj_a5746e6d2deb36c65aad&embedToken=prj_a5746e6d2deb36c65aad"
           width="100%"
           height="100%"
           frameBorder="0"
