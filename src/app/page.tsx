@@ -1,21 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import TopCandidateRanking from "@/components/TopCandidateRanking";
 import AITalentAdvisor from "@/components/AITalentAdvisor";
 import PositionFilter from "@/components/PositionFilter";
 
-const candidates = [
-  { rank: 1, initials: "AL", name: "Alexandro", role: "Senior Frontend Developer", score: 94 },
-  { rank: 2, initials: "JS", name: "Jessy", role: "Full Stack Developer", score: 89 },
-  { rank: 3, initials: "MC", name: "Micro", role: "UI/UX Designer", score: 86 },
-  { rank: 4, initials: "DW", name: "Dewa", role: "Backend Developer", score: 82 },
-  { rank: 5, initials: "DN", name: "Dinda", role: "DevOps Engineer", score: 78 },
-];
+interface Candidate {
+  rank: number;
+  initials: string;
+  name: string;
+  role: string;
+  score: number;
+  nip: string;
+  nilai_9box: string;
+}
 
 export default function Dashboard() {
   const [selectedPosition, setSelectedPosition] = useState("All Position");
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 5;
+
+  useEffect(() => {
+    fetch("/api/candidates")
+      .then((r) => r.json())
+      .then((data) => {
+        setCandidates(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const uniquePositions = [...new Set(candidates.map((c) => c.role))];
+
+  const filteredCandidates = selectedPosition === "All Position"
+    ? candidates
+    : candidates.filter((c) => c.role === selectedPosition);
+
+  const totalPages = Math.ceil(filteredCandidates.length / PAGE_SIZE);
+  const pagedCandidates = filteredCandidates.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const handleFilterChange = (pos: string) => {
+    setSelectedPosition(pos);
+    setPage(1);
+  };
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-73px)]">
@@ -30,13 +60,38 @@ export default function Dashboard() {
                     <i className="fas fa-users text-white text-sm"></i>
                     <h2 className="text-sm font-semibold text-white">Top Candidate Ranking</h2>
                   </div>
-                  <PositionFilter onFilterChange={setSelectedPosition} />
+                  <PositionFilter positions={uniquePositions} onFilterChange={handleFilterChange} />
                 </div>
               </div>
-              <TopCandidateRanking
-                candidates={candidates}
-                selectedPosition={selectedPosition}
-              />
+              {loading ? (
+                <div className="p-8 text-center text-gray-500 text-sm">
+                  <i className="fas fa-spinner fa-spin text-2xl mb-2 block"></i>
+                  Loading candidates...
+                </div>
+              ) : (
+                <>
+                  <TopCandidateRanking candidates={pagedCandidates} />
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 px-4 py-3 border-t border-gray-100">
+                      <button
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className="px-3 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-gray-50"
+                      >
+                        <i className="fas fa-chevron-left"></i>
+                      </button>
+                      <span className="text-xs text-gray-500">Page {page} of {totalPages}</span>
+                      <button
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={page === totalPages}
+                        className="px-3 py-1 text-xs rounded border border-gray-300 disabled:opacity-40 hover:bg-gray-50"
+                      >
+                        <i className="fas fa-chevron-right"></i>
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
           <AITalentAdvisor />

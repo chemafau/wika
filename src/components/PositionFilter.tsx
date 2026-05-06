@@ -2,20 +2,12 @@
 
 import { useState } from "react";
 
-const positions = [
-  "All Position",
-  "Frontend Developer",
-  "Full Stack Developer",
-  "UI/UX Designer",
-  "Backend Developer",
-  "DevOps Engineer",
-];
-
 interface PositionFilterProps {
+  positions: string[];
   onFilterChange?: (position: string) => void;
 }
 
-export default function PositionFilter({ onFilterChange }: PositionFilterProps) {
+export default function PositionFilter({ positions, onFilterChange }: PositionFilterProps) {
   const [selectedPosition, setSelectedPosition] = useState("All Position");
 
   const handleChange = (value: string) => {
@@ -30,6 +22,7 @@ export default function PositionFilter({ onFilterChange }: PositionFilterProps) 
         onChange={(e) => handleChange(e.target.value)}
         className="px-3 py-1.5 pr-8 bg-white border border-gray-300 rounded text-xs font-medium text-gray-700 appearance-none cursor-pointer hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
       >
+        <option value="All Position">All Position</option>
         {positions.map((pos) => (
           <option key={pos} value={pos}>
             {pos}
@@ -40,5 +33,3 @@ export default function PositionFilter({ onFilterChange }: PositionFilterProps) 
     </div>
   );
 }
-
-export { positions };
