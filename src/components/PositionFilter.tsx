@@ -1,28 +1,22 @@
 "use client";
 
-import { useState } from "react";
+const ALL_VALUE = "All Position";
 
 interface PositionFilterProps {
   positions: string[];
-  onFilterChange?: (position: string) => void;
+  value: string;
+  onFilterChange: (position: string) => void;
 }
 
-export default function PositionFilter({ positions, onFilterChange }: PositionFilterProps) {
-  const [selectedPosition, setSelectedPosition] = useState("All Position");
-
-  const handleChange = (value: string) => {
-    setSelectedPosition(value);
-    onFilterChange?.(value);
-  };
-
+export default function PositionFilter({ positions, value, onFilterChange }: PositionFilterProps) {
   return (
     <div className="relative">
       <select
-        value={selectedPosition}
-        onChange={(e) => handleChange(e.target.value)}
+        value={value}
+        onChange={(e) => onFilterChange(e.target.value)}
         className="px-3 py-1.5 pr-8 bg-white border border-gray-300 rounded text-xs font-medium text-gray-700 appearance-none cursor-pointer hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
       >
-        <option value="All Position">All Position</option>
+        <option value={ALL_VALUE}>Jabatan</option>
         {positions.map((pos) => (
           <option key={pos} value={pos}>
             {pos}

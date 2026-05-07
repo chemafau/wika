@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Maldevta Iframe — Phase 2 Verification</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 24px;
+      background: #f5f5f5;
+      color: #1a1a1a;
+    }
+    h1 { margin: 0 0 4px; font-size: 22px; }
+    .sub { color: #666; font-size: 13px; margin-bottom: 16px; }
+    .layout {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #555;
+    }
+    iframe {
+      width: 400px;
+      height: 600px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      display: block;
+    }
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 13px;
+    }
+    .status-row:last-child { border-bottom: none; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge.pending { background: #fef3c7; color: #92400e; }
+    .badge.ok { background: #d1fae5; color: #065f46; }
+    .badge.fail { background: #fee2e2; color: #991b1b; }
+    .commands { display: flex; flex-direction: column; gap: 6px; }
+    button {
+      padding: 8px 12px;
+      border: 1px solid #1e3a5f;
+      background: #1e3a5f;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      text-align: left;
+    }
+    button:hover { background: #162d4a; }
+    button.secondary {
+      background: white;
+      color: #1e3a5f;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #log {
+      max-height: 700px;
+      overflow-y: auto;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 11px;
+    }
+    .log-entry {
+      padding: 6px 8px;
+      margin-bottom: 4px;
+      border-left: 3px solid #ccc;
+      background: #fafafa;
+      border-radius: 0 4px 4px 0;
+    }
+    .log-entry.in { border-color: #10b981; }
+    .log-entry.out { border-color: #3b82f6; }
+    .log-entry.warn { border-color: #f59e0b; background: #fffbeb; }
+    .log-entry.err { border-color: #ef4444; background: #fef2f2; }
+    .log-time { color: #888; font-size: 10px; }
+    .log-label { font-weight: 600; }
+    .log-entry pre {
+      margin: 4px 0 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .summary {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #eee;
+      font-size: 12px;
+      color: #555;
+    }
+    .summary li { margin-bottom: 4px; }
+    code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-size: 11px; }
+  </style>
+</head>
+<body>
+  <h1>Maldevta Iframe — Phase 2 Verification</h1>
+  <div class="sub">
+    Membuktikan apakah feature spec di <code>docs/maldevta-embed-requirements.md</code> sudah ter-implement.
+    Buka DevTools Console juga untuk catatan lengkap.
+  </div>
+
+  <div class="layout">
+    <div>
+      <div class="card">
+        <h2>Iframe Maldevta</h2>
+        <iframe
+          id="frame"
+          src="https://maldevta.com/embed?projectId=prj_a5746e6d2deb36c65aad&embedToken=prj_a5746e6d2deb36c65aad&uid=test_uid_001"
+          allow="microphone"
+        ></iframe>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Status Checklist</h2>
+        <div class="status-row">
+          <span>Iframe load (no 401)</span>
+          <span class="badge pending" id="s-load">⏳ menunggu</span>
+        </div>
+        <div class="status-row">
+          <span><code>maldevta:ready</code> event</span>
+          <span class="badge pending" id="s-ready">⏳ menunggu</span>
+        </div>
+        <div class="status-row">
+          <span><code>maldevta:user-message-sent</code></span>
+          <span class="badge pending" id="s-usent">⏳ menunggu</span>
+        </div>
+        <div class="status-row">
+          <span><code>maldevta:ai-response</code></span>
+          <span class="badge pending" id="s-airesp">⏳ menunggu</span>
+        </div>
+        <div class="status-row">
+          <span><code>maldevta:ai-streaming</code></span>
+          <span class="badge pending" id="s-stream">⏳ menunggu</span>
+        </div>
+        <div class="status-row">
+          <span><code>maldevta:intent-detected</code></span>
+          <span class="badge pending" id="s-intent">⏳ menunggu</span>
+        </div>
+        <div class="status-row">
+          <span><code>send-message</code> diterima iframe</span>
+          <span class="badge pending" id="s-send">⏳ menunggu</span>
+        </div>
+
+        <div class="summary">
+          <strong>Cara baca:</strong>
+          <ul>
+            <li>Klik tombol di kanan secara berurutan dari atas ke bawah</li>
+            <li>Lihat log event dan badge berubah jadi ✅ / ❌</li>
+            <li>Kalau iframe redirect ke login → Phase 2 belum fix auth</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 16px;">
+        <h2>Test Commands (parent → iframe)</h2>
+        <div class="commands">
+          <button id="b-send-halo">📤 send-message: "Halo, ini test"</button>
+          <button id="b-send-rec">📤 send-message: "tampilkan top 3 kandidat senior manager"</button>
+          <button id="b-send-hide">📤 send-message hideUserBubble: "Analisis kandidat X"</button>
+          <button id="b-new">🔄 new-conversation</button>
+          <button id="b-theme" class="secondary">🎨 set-theme {primaryColor:#1e3a5f}</button>
+          <button id="b-clear" class="secondary">🧹 clear log</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 16px;">
+        <h2>Event Log (newest on top)</h2>
+        <div id="log"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const iframe = document.getElementById('frame');
+    const log = document.getElementById('log');
+    const TARGET_ORIGIN = 'https://maldevta.com';
+
+    function setStatus(id, ok, label) {
+      const el = document.getElementById(id);
+      el.className = 'badge ' + (ok ? 'ok' : 'fail');
+      el.textContent = (ok ? '✅ ' : '❌ ') + (label || (ok ? 'OK' : 'gagal'));
+    }
+
+    function addLog(level, label, data) {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry ' + level;
+      const time = new Date().toLocaleTimeString();
+      entry.innerHTML =
+        `<div><span class="log-time">${time}</span> <span class="log-label">${label}</span></div>` +
+        (data !== undefined ? `<pre>${JSON.stringify(data, null, 2)}</pre>` : '');
+      log.prepend(entry);
+      console.log('[iframe-test]', level, label, data);
+    }
+
+    // Iframe load detection
+    iframe.addEventListener('load', () => {
+      setStatus('s-load', true, 'load fired');
+      addLog('in', '🖼️  iframe load event fired (tidak guarantee 401-free, cek Network tab kalau ragu)');
+    });
+    iframe.addEventListener('error', (e) => {
+      setStatus('s-load', false, 'load error');
+      addLog('err', '🖼️  iframe load error', { message: String(e) });
+    });
+
+    // Listen postMessage dari iframe
+    window.addEventListener('message', (e) => {
+      // Log SEMUA message — pakai filter origin saat parsing
+      const fromMaldevta = e.origin === TARGET_ORIGIN || e.origin.endsWith('.maldevta.com');
+      const data = e.data;
+      const type = typeof data === 'object' && data ? data.type : null;
+
+      if (!fromMaldevta) {
+        addLog('warn', `📥 message dari origin lain: ${e.origin}`, data);
+        return;
+      }
+
+      addLog('in', `📥 ${type || '(no type)'}  origin=${e.origin}`, data);
+
+      if (typeof type === 'string') {
+        if (type === 'maldevta:ready') setStatus('s-ready', true);
+        if (type === 'maldevta:user-message-sent') setStatus('s-usent', true);
+        if (type === 'maldevta:ai-response') setStatus('s-airesp', true);
+        if (type === 'maldevta:ai-streaming') setStatus('s-stream', true);
+        if (type === 'maldevta:intent-detected') setStatus('s-intent', true);
+
+        // Catch-all: kalau maldevta tambah event type lain di luar spec
+        const knownTypes = [
+          'maldevta:ready',
+          'maldevta:user-message-sent',
+          'maldevta:ai-response',
+          'maldevta:ai-streaming',
+          'maldevta:intent-detected',
+          'maldevta:error',
+        ];
+        if (!knownTypes.includes(type)) {
+          addLog('warn', `🆕 EVENT BARU di luar spec: ${type}`, data);
+        }
+
+        // Heuristic: deteksi kalau payload berisi "intent" / "recommendation" / "jabatan"
+        // walau type-nya bukan intent-detected
+        const payloadStr = JSON.stringify(data).toLowerCase();
+        if (
+          type !== 'maldevta:intent-detected' &&
+          (payloadStr.includes('intent') ||
+            payloadStr.includes('recommendation') ||
+            payloadStr.includes('jabatan'))
+        ) {
+          addLog('warn', `🔎 Payload mengandung kata kunci intent/recommendation di event ${type}`, data);
+        }
+      }
+
+      // Kalau data bukan object atau tidak ada type, masih log juga
+      if (typeof data === 'string') {
+        addLog('warn', `📝 message berupa string mentah (bukan object)`, { value: data });
+      }
+    });
+
+    function send(cmd) {
+      addLog('out', `📤 ${cmd.type}`, cmd);
+      iframe.contentWindow.postMessage(cmd, TARGET_ORIGIN);
+    }
+
+    document.getElementById('b-send-halo').onclick = () => {
+      send({ type: 'maldevta:send-message', payload: { content: 'Halo, ini test dari parent' } });
+      // Optimistic: kalau ai-response masuk, send command terbukti diterima
+      setTimeout(() => {
+        const userSent = document.getElementById('s-usent').classList.contains('ok');
+        const aiResp = document.getElementById('s-airesp').classList.contains('ok');
+        if (userSent || aiResp) setStatus('s-send', true, 'iframe respond');
+      }, 8000);
+    };
+
+    document.getElementById('b-send-rec').onclick = () => {
+      send({
+        type: 'maldevta:send-message',
+        payload: { content: 'tolong tampilkan top 3 kandidat yang cocok untuk senior manager' }
+      });
+    };
+
+    document.getElementById('b-send-hide').onclick = () => {
+      send({
+        type: 'maldevta:send-message',
+        payload: {
+          content: 'Tolong jelaskan kandidat dengan NIP ET012301',
+          hideUserBubble: true
+        }
+      });
+    };
+
+    document.getElementById('b-new').onclick = () => {
+      send({ type: 'maldevta:new-conversation' });
+    };
+
+    document.getElementById('b-theme').onclick = () => {
+      send({
+        type: 'maldevta:set-theme',
+        payload: { primaryColor: '#1e3a5f', fontFamily: 'Inter' }
+      });
+    };
+
+    document.getElementById('b-clear').onclick = () => {
+      log.innerHTML = '';
+      addLog('warn', '🧹 log dibersihkan');
+    };
+
+    addLog('warn', '⏱️  Test page siap. Tunggu maldevta:ready, lalu klik tombol secara berurutan.');
+  </script>
+</body>
+</html>
