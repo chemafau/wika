@@ -48,8 +48,19 @@ PENTING: Hanya gunakan data yang ada di file Excel. Jangan menambahkan atau meng
 
   // 3. Parse JSON dari response AI
   const raw: string = msg.message.content;
-  const jsonStr = raw.match(/\[[\s\S]*\]/)?.[0] ?? "[]";
-  const rawCandidates = JSON.parse(jsonStr);
+  const stripped = raw.replace(/```(?:json)?\s*/gi, "").replace(/```/g, "").trim();
+  const jsonStr = stripped.match(/\[[\s\S]*\]/)?.[0] ?? null;
+
+  if (!jsonStr) {
+    return Response.json({ error: "ai_unavailable", message: raw }, { status: 503 });
+  }
+
+  let rawCandidates;
+  try {
+    rawCandidates = JSON.parse(jsonStr);
+  } catch {
+    return Response.json({ error: "parse_failed", message: raw }, { status: 500 });
+  }
 
   // 4. Konversi score pakai kode (bukan AI), sort, tambah rank
   const candidates = rawCandidates

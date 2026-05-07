@@ -20,6 +20,7 @@ export default function Dashboard() {
   const [selectedPosition, setSelectedPosition] = useState("All Position");
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 5;
 
@@ -27,10 +28,17 @@ export default function Dashboard() {
     fetch("/api/candidates")
       .then((r) => r.json())
       .then((data) => {
-        setCandidates(data);
+        if (data.error) {
+          setError("AI sedang tidak tersedia. Coba beberapa saat lagi.");
+        } else {
+          setCandidates(data);
+        }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setError("Gagal terhubung ke server.");
+        setLoading(false);
+      });
   }, []);
 
   const uniquePositions = [...new Set(candidates.map((c) => c.role))];
@@ -67,6 +75,11 @@ export default function Dashboard() {
                 <div className="p-8 text-center text-gray-500 text-sm">
                   <i className="fas fa-spinner fa-spin text-2xl mb-2 block"></i>
                   Loading candidates...
+                </div>
+              ) : error ? (
+                <div className="p-8 text-center text-gray-500 text-sm">
+                  <i className="fas fa-exclamation-circle text-2xl mb-2 block text-yellow-400"></i>
+                  {error}
                 </div>
               ) : (
                 <>
