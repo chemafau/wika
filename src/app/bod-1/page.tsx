@@ -37,6 +37,34 @@ const candidates = [
     initials: "FN",
     pdfFile: "(BPI) Full report Hasil Asesmen PT Wijaya Karya (Persero), Tbk_5-6 Februari 2025_Sahid",
   },
+  {
+    name: "CHELSEA ANDRIANA",
+    division: "",
+    nilai_9box: "1A",
+    initials: "CA",
+    pdfFile: "Chelsea Andriana - Laporan Hasil Asesmen",
+  },
+  {
+    name: "NUR AFIFAH FIRMAN",
+    division: "",
+    nilai_9box: "1A",
+    initials: "NA",
+    pdfFile: "Nur Afifah Firman - Laporan Hasil Asesmen",
+  },
+  {
+    name: "IBAD HAFIDZ PUTRO SISWOYO",
+    division: "",
+    nilai_9box: "1A",
+    initials: "IH",
+    pdfFile: "Ibad Hafidz Putro Siswoyo - Laporan Hasil Asesmen",
+  },
+  {
+    name: "SEPTIAN PRATAMA PUTRA",
+    division: "",
+    nilai_9box: "1A",
+    initials: "SP",
+    pdfFile: "Septian Pratama Putra - Laporan Hasil Asesmen",
+  },
 ];
 
 export default function BOD1Page() {

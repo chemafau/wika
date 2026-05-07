@@ -1,26 +1,24 @@
-const PROJECT_ID = "prj_a5746e6d2deb36c65aad";
-const BASE_URL = "https://maldevta.com";
+import path from "path";
+import fs from "fs";
+
+const DOCS_DIR = path.join(process.cwd(), "public", "documents");
 
 export async function GET() {
-  const convRes = await fetch(`${BASE_URL}/embed/${PROJECT_ID}/conversations`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title: "Debug" }),
-  });
-  const conv = await convRes.json();
+  const files = fs.readdirSync(DOCS_DIR);
+  const results: Record<string, string> = {};
 
-  const msgRes = await fetch(
-    `${BASE_URL}/embed/${PROJECT_ID}/conversations/${conv.id}/messages`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content: "Dari file Excel, tampilkan 3 baris data pertama. Jawab HANYA dengan JSON array, format: [{\"nip\":\"...\",\"nama\":\"...\",\"nilai_9box\":\"...\",\"posisi\":\"...\",\"level\":\"...\"}]",
-        role: "user",
-      }),
+  for (const file of files) {
+    if (!file.endsWith(".pdf")) continue;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const pdfParse = require("pdf-parse/lib/pdf-parse.js");
+      const buffer = fs.readFileSync(path.join(DOCS_DIR, file));
+      const data = await pdfParse(buffer);
+      results[file] = data.text?.slice(0, 300) ?? "EMPTY";
+    } catch (e) {
+      results[file] = `ERROR: ${String(e)}`;
     }
-  );
-  const msg = await msgRes.json();
+  }
 
-  return Response.json({ raw: msg.message.content });
+  return Response.json(results);
 }
