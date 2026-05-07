@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Header from "@/components/Header";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface Section {
   label: string;
@@ -84,49 +85,54 @@ export default function BOD1Page() {
   }
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-73px)]">
-      <Header title="BOD-1" />
-      <div className="p-6 flex-1">
-        <div className="flex items-center gap-3 mb-6">
-          <h2 className="text-lg font-bold text-gray-900">Talent</h2>
-          <span className="w-7 h-7 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">
-            {candidates.length}
-          </span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {candidates.map((c) => (
-            <div
-              key={c.name}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => handleCardClick(c)}
-            >
-              <div className="p-5 flex items-start gap-4">
-                <div className="w-16 h-16 bg-gray-200 rounded-xl flex items-center justify-center text-gray-600 font-bold text-lg flex-shrink-0 relative">
-                  {loadingName === c.name ? (
-                    <i className="fas fa-spinner fa-spin text-[#1e3a5f]"></i>
-                  ) : (
-                    c.initials
-                  )}
+    <ProtectedRoute>
+      <div className="flex flex-col min-h-[calc(100vh-73px)]">
+        <Header title="BOD-1" />
+        <div className="p-6 flex-1">
+          <div className="flex items-center gap-3 mb-6">
+            <h2 className="text-lg font-bold text-gray-900">Talent</h2>
+            <span className="w-7 h-7 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">
+              {candidates.length}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {candidates.map((c) => (
+              <div
+                key={c.name}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => handleCardClick(c)}
+              >
+                <div className="p-5 flex items-start gap-4">
+                  <div className="w-16 h-16 bg-gray-200 rounded-xl flex items-center justify-center text-gray-600 font-bold text-lg flex-shrink-0 relative">
+                    {loadingName === c.name ? (
+                      <i className="fas fa-spinner fa-spin text-[#1e3a5f]"></i>
+                    ) : (
+                      c.initials
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900 text-sm leading-tight">{c.name}</h3>
+                    <p className="text-xs text-gray-500 mt-1 leading-tight">{c.division}</p>
+                    <span className="inline-block mt-2 px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-200 rounded text-xs font-medium">
+                      Box {c.nilai_9box}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-gray-900 text-sm leading-tight">{c.name}</h3>
-                  <p className="text-xs text-gray-500 mt-1 leading-tight">{c.division}</p>
-                  <span className="inline-block mt-2 px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-200 rounded text-xs font-medium">
-                    Box {c.nilai_9box}
-                  </span>
+                <div className="border-t border-gray-100 px-5 py-3 flex items-center gap-4">
+                  <button className="text-gray-400 hover:text-[#1e3a5f] transition-colors" title="Lihat laporan">
+                    <i className="fas fa-clipboard-list text-sm"></i>
+                  </button>
+                  <button className="text-gray-400 hover:text-[#1e3a5f] transition-colors" title="Lihat profil">
+                    <i className="fas fa-user-circle text-sm"></i>
+                  </button>
                 </div>
               </div>
-              <div className="border-t border-gray-100 px-5 py-3 flex items-center gap-4">
-                <button className="text-gray-400 hover:text-[#1e3a5f] transition-colors" title="Lihat laporan">
-                  <i className="fas fa-clipboard-list text-sm"></i>
-                </button>
-                <button className="text-gray-400 hover:text-[#1e3a5f] transition-colors" title="Lihat profil">
-                  <i className="fas fa-user-circle text-sm"></i>
-                </button>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+        <footer className="bg-[#1e3a5f] text-white py-4 px-6 text-center text-sm">
+          <p>© 2024 TalentHub. All rights reserved.</p>
+        </footer>
       </div>
 
       {modal && (
@@ -172,10 +178,6 @@ export default function BOD1Page() {
           </div>
         </div>
       )}
-
-      <footer className="bg-[#1e3a5f] text-white py-4 px-6 text-center text-sm">
-        <p>© 2024 TalentHub. All rights reserved.</p>
-      </footer>
-    </div>
+    </ProtectedRoute>
   );
 }

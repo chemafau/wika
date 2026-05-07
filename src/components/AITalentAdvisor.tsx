@@ -1,6 +1,10 @@
 "use client";
 
+import { useAuth } from "@/contexts/AuthContext";
+
 export default function AITalentAdvisor() {
+  const { user } = useAuth();
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full">
       <div className="bg-[#1e3a5f] px-4 py-3">
@@ -11,7 +15,7 @@ export default function AITalentAdvisor() {
       </div>
       <div className="p-3 flex-1">
         <iframe
-          src="https://maldevta.com/embed?projectId=prj_a5746e6d2deb36c65aad&embedToken=prj_a5746e6d2deb36c65aad"
+          src={`https://maldevta.com/embed?projectId=prj_a5746e6d2deb36c65aad&embedToken=prj_a5746e6d2deb36c65aad&uid=${user?.id || ""}`}
           width="100%"
           height="100%"
           frameBorder="0"
