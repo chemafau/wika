@@ -11,10 +11,10 @@ export async function POST(request: Request) {
   });
   const conv = await convRes.json();
 
-  const prompt = `Berdasarkan data dari file yang tersedia, jelaskan mengapa kandidat bernama ${name} (NIP: ${nip}) mendapatkan nilai 9-box "${nilai_9box}".
-Jelaskan berdasarkan data asesmen kompetensi, performa, dan potensi yang ada di file.
+  const prompt = `Berdasarkan data dari file Excel yang tersedia, jelaskan mengapa kandidat bernama ${name} (NIP: ${nip}) mendapatkan nilai 9-box "${nilai_9box}".
+Gunakan HANYA data dari file Excel. Jangan gunakan data dari file PDF manapun.
 Gunakan bahasa Indonesia. Jawab dengan ringkas dan jelas, maksimal 4 poin.
-PENTING: Hanya gunakan data yang ada di file. Jangan menambahkan informasi yang tidak ada.`;
+PENTING: Hanya gunakan data yang ada di file Excel. Jangan menambahkan informasi yang tidak ada.`;
 
   const msgRes = await fetch(
     `${BASE_URL}/embed/${PROJECT_ID}/conversations/${conv.id}/messages`,
