@@ -59,7 +59,7 @@ export default function Dashboard() {
     setTimeout(() => setToast(null), 3000);
   }
 
-  const CANDIDATES_CACHE_KEY = "wika_candidates_cache_v2";
+  const CANDIDATES_CACHE_KEY = "wika_candidates_cache_v3";
   const CACHE_TTL_MS = 30 * 60 * 1000; // 30 menit
 
   function getCacheKey(jabatan?: string, limit?: number): string {

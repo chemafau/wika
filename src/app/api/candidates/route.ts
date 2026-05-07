@@ -54,21 +54,15 @@ export async function GET(request: Request) {
     convId = conv.id;
   }
 
-  // Pakai pertanyaan natural seperti user ngetik di chat AI Talent Advisor.
-  // Source selection dipercayakan ke project context maldevta (sudah di-config user).
+  // Pakai pertanyaan natural seperti user ngetik di chat. Project context maldevta
+  // sudah handle source selection + format. Hanya tambah JSON output instruction.
   const naturalQuery = jabatan
     ? `tampilkan top ${limit ?? 10} kandidat untuk jabatan ${jabatan}`
-    : `berikan daftar kandidat unik dari Excel master (data terkini, tanggal_akhir = 9999-12-31)`;
+    : `berikan daftar kandidat dari Excel master (data terkini, tanggal_akhir = 9999-12-31)`;
 
   const prompt = `${naturalQuery}
 
-Setelah analisis kandidat selesai, OUTPUT HANYA JSON array berikut, tanpa teks pembuka, tanpa markdown:
-[{"nip":"...","nama":"...","posisi":"...","level":"...","nama_jabatan":"...","nilai_9box":"...","alasan":"alasan singkat"}]
-
-Aturan field:
-- Kandidat dari PDF asesmen: "nip"="N/A" jika tidak ada di PDF, "nilai_9box"="" jika tidak tersedia di asesmen.
-- Kandidat dari Excel: "nip"=NIP, "nilai_9box"=nilai 9-box.
-- Tiap kandidat data-nya konsisten dari satu sumber, jangan dicampur antar-orang.`;
+Output JSON array saja: [{"nip":"...","nama":"...","posisi":"...","level":"...","nama_jabatan":"...","nilai_9box":"...","alasan":"..."}]`;
 
   const msgRes = await fetch(
     `${BASE_URL}/embed/${PROJECT_ID}/conversations/${convId}/messages`,
