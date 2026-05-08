@@ -5,13 +5,10 @@ const PROJECT_ID = "prj_a5746e6d2deb36c65aad";
 const BASE_URL = "https://maldevta.com";
 const DOCS_DIR = path.join(process.cwd(), "public", "documents");
 
-async function readLocalPdf(pdfFile: string): Promise<{ text: string } | { error: string }> {
-  const filePath = path.join(DOCS_DIR, `${pdfFile}.pdf`);
-  if (!fs.existsSync(filePath)) return { error: `File not found: ${filePath}` };
+async function parsePdf(buffer: Buffer): Promise<{ text: string } | { error: string }> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const pdfParse = require("pdf-parse/lib/pdf-parse.js");
-    const buffer = fs.readFileSync(filePath);
     const data = await pdfParse(buffer);
     if (!data.text) return { error: "PDF parsed but text is empty" };
     return { text: data.text };
@@ -20,11 +17,38 @@ async function readLocalPdf(pdfFile: string): Promise<{ text: string } | { error
   }
 }
 
+async function readLocalPdf(pdfFile: string): Promise<{ text: string } | { error: string }> {
+  const filePath = path.join(DOCS_DIR, `${pdfFile}.pdf`);
+  if (!fs.existsSync(filePath)) return { error: `File not found: ${filePath}` };
+  const buffer = fs.readFileSync(filePath);
+  return parsePdf(buffer);
+}
+
+function getDriveDirectUrl(driveLink: string): string {
+  const match = driveLink.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (!match) return driveLink;
+  return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+}
+
+async function readDrivePdf(driveLink: string): Promise<{ text: string } | { error: string }> {
+  try {
+    const url = getDriveDirectUrl(driveLink);
+    const res = await fetch(url);
+    if (!res.ok) return { error: `Drive fetch failed: ${res.status}` };
+    const arrayBuffer = await res.arrayBuffer();
+    return parsePdf(Buffer.from(arrayBuffer));
+  } catch (e) {
+    return { error: String(e) };
+  }
+}
+
 export async function POST(request: Request) {
   try {
-    const { name, pdfFile } = await request.json();
+    const { name, pdfFile, driveLink } = await request.json();
 
-    const pdfResult = await readLocalPdf(pdfFile);
+    const pdfResult = driveLink
+      ? await readDrivePdf(driveLink)
+      : await readLocalPdf(pdfFile);
 
     const convRes = await fetch(`${BASE_URL}/embed/${PROJECT_ID}/conversations`, {
       method: "POST",

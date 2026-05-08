@@ -23,6 +23,7 @@ const candidates = [
     nilai_9box: "1A",
     initials: "MA",
     pdfFile: "(PPM) Full Report Hasil Asesmen PT Wijaya Karya (Persero), Tbk_ 17-18 Februari 2025_Gatot",
+    driveLink: "",
   },
   {
     name: "BRAM IBRAHIM",
@@ -30,6 +31,7 @@ const candidates = [
     nilai_9box: "1A",
     initials: "BI",
     pdfFile: "(LMFEBUI) Full Report Hasil Asesmen PT Wijaya Karya (Persero), Tbk_ 11-12 Februari 2025_Rafael",
+    driveLink: "",
   },
   {
     name: "FARID NUR AIDY",
@@ -37,6 +39,7 @@ const candidates = [
     nilai_9box: "1A",
     initials: "FN",
     pdfFile: "(BPI) Full report Hasil Asesmen PT Wijaya Karya (Persero), Tbk_5-6 Februari 2025_Sahid",
+    driveLink: "",
   },
   {
     name: "CHELSEA ANDRIANA",
@@ -44,13 +47,15 @@ const candidates = [
     nilai_9box: "1A",
     initials: "CA",
     pdfFile: "Chelsea Andriana - Laporan Hasil Asesmen",
+    driveLink: "",
   },
   {
     name: "NUR AFIFAH FIRMAN",
     division: "",
     nilai_9box: "1A",
     initials: "NA",
-    pdfFile: "Nur Afifah Firman - Laporan Hasil Asesmen",
+    pdfFile: "",
+    driveLink: "https://drive.google.com/file/d/1JFYNv4oIAIC8HKp9yYo8mMk_Upp9J6I7/view?usp=drive_link",
   },
   {
     name: "IBAD HAFIDZ PUTRO SISWOYO",
@@ -58,13 +63,23 @@ const candidates = [
     nilai_9box: "1A",
     initials: "IH",
     pdfFile: "Ibad Hafidz Putro Siswoyo - Laporan Hasil Asesmen",
+    driveLink: "",
   },
   {
     name: "SEPTIAN PRATAMA PUTRA",
     division: "",
     nilai_9box: "1A",
     initials: "SP",
-    pdfFile: "Septian Pratama Putra - Laporan Hasil Asesmen",
+    pdfFile: "",
+    driveLink: "https://drive.google.com/file/d/1y_t2fPM8W5VPmc9GqdV6pKGwkvh8_OyB/view?usp=drive_link",
+  },
+  {
+    name: "TUBAGUS JULIANSYAH",
+    division: "",
+    nilai_9box: "1A",
+    initials: "TJ",
+    pdfFile: "",
+    driveLink: "https://drive.google.com/file/d/19asYJFAmU3fBPLeYCd1cJ7Hou8CSnfd7/view?usp=sharing",
   },
 ];
 
@@ -77,7 +92,7 @@ export default function BOD1Page() {
     const res = await fetch("/api/assessment", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: candidate.name, pdfFile: candidate.pdfFile }),
+      body: JSON.stringify({ name: candidate.name, pdfFile: candidate.pdfFile, driveLink: candidate.driveLink }),
     });
     const data = await res.json();
     setLoadingName(null);
