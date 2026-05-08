@@ -128,7 +128,7 @@ export default function AITalentAdvisor({
   }, [pendingPrompt]);
 
   const iframeSrc = uid
-    ? `${TARGET_ORIGIN}/embed?projectId=${PROJECT_ID}&embedToken=${EMBED_TOKEN}&uid=${encodeURIComponent(uid)}`
+    ? `${TARGET_ORIGIN}/embed?projectId=${PROJECT_ID}&embedToken=${EMBED_TOKEN}&uid=${encodeURIComponent(uid)}&noHistory=true`
     : "";
 
   return (
