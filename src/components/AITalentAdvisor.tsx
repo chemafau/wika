@@ -25,6 +25,7 @@ interface AITalentAdvisorProps {
   onPromptDelivered: () => void;
   onUserMessage?: (content: string) => void;
   onConversationReady?: (conversationId: string) => void;
+  onAiResponse?: (content: string, conversationId: string) => void;
 }
 
 export default function AITalentAdvisor({
@@ -32,6 +33,7 @@ export default function AITalentAdvisor({
   onPromptDelivered,
   onUserMessage,
   onConversationReady,
+  onAiResponse,
 }: AITalentAdvisorProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [uid, setUid] = useState("");
@@ -40,6 +42,7 @@ export default function AITalentAdvisor({
   const queueRef = useRef<{ content: string; hideUserBubble: boolean }[]>([]);
   const onUserMessageRef = useRef(onUserMessage);
   const onConversationReadyRef = useRef(onConversationReady);
+  const onAiResponseRef = useRef(onAiResponse);
 
   useEffect(() => {
     onUserMessageRef.current = onUserMessage;
@@ -48,6 +51,10 @@ export default function AITalentAdvisor({
   useEffect(() => {
     onConversationReadyRef.current = onConversationReady;
   }, [onConversationReady]);
+
+  useEffect(() => {
+    onAiResponseRef.current = onAiResponse;
+  }, [onAiResponse]);
 
   useEffect(() => {
     setUid(getOrCreateUid());
@@ -106,6 +113,10 @@ export default function AITalentAdvisor({
           const convId = data.payload?.conversationId;
           if (typeof convId === "string" && convId && onConversationReadyRef.current) {
             onConversationReadyRef.current(convId);
+          }
+          const content = data.payload?.content;
+          if (typeof content === "string" && onAiResponseRef.current) {
+            onAiResponseRef.current(content, typeof convId === "string" ? convId : "");
           }
           busyRef.current = false;
           drainQueue();

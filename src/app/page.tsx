@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Header from "@/components/Header";
 import TopCandidateRanking from "@/components/TopCandidateRanking";
 import AITalentAdvisor from "@/components/AITalentAdvisor";
@@ -19,18 +19,144 @@ interface Candidate {
   alasan?: string;
 }
 
+const NINE_BOX_SCORE: Record<string, number> = {
+  "1A": 95, "1B": 90, "1C": 85,
+  "2A": 80, "2B": 75, "2C": 70,
+  "3A": 65, "3B": 60, "3C": 55,
+};
+
+function getInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0] ?? "")
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+function nineBoxToScore(nilai: string, rank: number): number {
+  const key = nilai.toUpperCase().trim();
+  if (NINE_BOX_SCORE[key]) return NINE_BOX_SCORE[key];
+  return Math.max(60, 100 - (rank - 1) * 5);
+}
+
+// Parse respons AI ke daftar kandidat. Mendukung dua format umum:
+//  1) Pipe   : "1. Nama | Posisi | Alasan"
+//  2) Bullet : "• Nama (NIP: XXX) — Saat ini menjabat sebagai POSISI dengan nilai 9-box 1A. Alasan..."
+// Mengembalikan array kosong kalau respons tidak berisi daftar kandidat (mis. analisis paragraf).
+function parseCandidatesFromResponse(text: string, fallbackJabatan: string): Candidate[] {
+  if (!text) return [];
+  const lines = text.split(/\r?\n/);
+  const itemRegex = /^\s*([•\-*]|\d+[.)])\s+(.+)$/;
+
+  const items: { rank: number; body: string }[] = [];
+  let autoRank = 0;
+  for (const line of lines) {
+    const m = line.match(itemRegex);
+    if (!m) continue;
+    autoRank += 1;
+    const marker = m[1];
+    const body = m[2].trim();
+    const numericRank = /^\d+/.exec(marker);
+    const rank = numericRank ? parseInt(numericRank[0], 10) : autoRank;
+    items.push({ rank, body });
+  }
+
+  if (items.length < 2) return [];
+
+  const out: Candidate[] = [];
+  for (const { rank, body } of items) {
+    const c = parseOneCandidate(body, rank, fallbackJabatan);
+    if (c) out.push(c);
+  }
+  return out;
+}
+
+function parseOneCandidate(body: string, rank: number, fallbackJabatan: string): Candidate | null {
+  const nipMatch = body.match(/NIP\s*:?\s*([A-Z0-9-]+)/i);
+  const nineBoxMatch = body.match(/9[\s-]?box\s+([1-3][A-C])/i);
+  const nip = nipMatch?.[1] ?? "";
+  const nilai = nineBoxMatch?.[1]?.toUpperCase() ?? "";
+
+  let name = "";
+  let role = "";
+  let alasan = body;
+
+  // Format pipe: "Nama | Posisi | Alasan"
+  if (body.includes("|")) {
+    const parts = body.split("|").map((s) => s.trim()).filter(Boolean);
+    if (parts.length >= 3) {
+      name = parts[0];
+      role = parts[1];
+      alasan = parts.slice(2).join(" | ");
+    }
+  }
+
+  // Format bullet/narasi
+  if (!name) {
+    // Nama = teks dari awal sampai sebelum "(NIP", "—", " - ", atau ":"
+    const nameMatch = body.match(/^([^()|—:]+?)(?=\s*\(|\s+—|\s+-\s|:)/);
+    name = nameMatch?.[1]?.trim() ?? body.split(/[(—:]/)[0].trim();
+  }
+  if (!name) return null;
+
+  if (!role) {
+    const roleMatch =
+      body.match(/menjabat\s+sebagai\s+(.+?)(?=\s+dengan\s|\s+nilai\s|[.,;])/i) ??
+      body.match(/(?:^|\s)sebagai\s+(.+?)(?=\s+dengan\s|\s+nilai\s|[.,;])/i) ??
+      body.match(/(?:posisi|jabatan)\s*:?\s+(.+?)(?=\s+dengan\s|[.,;])/i);
+    role = roleMatch?.[1]?.trim() ?? "";
+  }
+
+  const namaJabatan =
+    fallbackJabatan && fallbackJabatan !== "All Position" ? fallbackJabatan : role;
+
+  return {
+    rank,
+    initials: getInitials(name),
+    name,
+    role,
+    nama_jabatan: namaJabatan,
+    score: nineBoxToScore(nilai, rank),
+    nip,
+    nilai_9box: nilai,
+    alasan,
+  };
+}
+
 export default function Dashboard() {
   const [selectedJabatan, setSelectedJabatan] = useState("All Position");
   const [allJabatan, setAllJabatan] = useState<string[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
   const [activeNip, setActiveNip] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [iframeConvId, setIframeConvId] = useState<string | null>(null);
   const PAGE_SIZE = 5;
+
+  // Ref agar handler dari iframe (created saat mount, closure stale) tetap baca state terbaru.
+  const selectedJabatanRef = useRef(selectedJabatan);
+  useEffect(() => {
+    selectedJabatanRef.current = selectedJabatan;
+  }, [selectedJabatan]);
+
+  // Timer fallback untuk auto-clear loading kalau AI lama / response tidak match parser.
+  const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function startLoading() {
+    setLoading(true);
+    if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
+    loadingTimerRef.current = setTimeout(() => setLoading(false), 30_000);
+  }
+  function stopLoading() {
+    setLoading(false);
+    if (loadingTimerRef.current) {
+      clearTimeout(loadingTimerRef.current);
+      loadingTimerRef.current = null;
+    }
+  }
 
   function handleAnalyze(candidate: Candidate) {
     const targetJabatan =
@@ -57,76 +183,6 @@ export default function Dashboard() {
         : `Pertanyaan tentang ${candidate.name} dikirim ke AI Talent Advisor`
     );
     setTimeout(() => setToast(null), 3000);
-  }
-
-  const CANDIDATES_CACHE_KEY = "wika_candidates_cache_v3";
-  const CACHE_TTL_MS = 30 * 60 * 1000; // 30 menit
-
-  function getCacheKey(jabatan?: string, limit?: number): string {
-    return `${jabatan ?? "ALL"}__${limit ?? 0}`;
-  }
-
-  function readCache(jabatan?: string, limit?: number): Candidate[] | null {
-    try {
-      const raw = localStorage.getItem(CANDIDATES_CACHE_KEY);
-      if (!raw) return null;
-      const cache = JSON.parse(raw);
-      const entry = cache[getCacheKey(jabatan, limit)];
-      if (!entry) return null;
-      if (Date.now() - entry.timestamp > CACHE_TTL_MS) return null;
-      return entry.data;
-    } catch {
-      return null;
-    }
-  }
-
-  function writeCache(jabatan: string | undefined, limit: number | undefined, data: Candidate[]) {
-    try {
-      const raw = localStorage.getItem(CANDIDATES_CACHE_KEY);
-      const cache = raw ? JSON.parse(raw) : {};
-      cache[getCacheKey(jabatan, limit)] = { timestamp: Date.now(), data };
-      localStorage.setItem(CANDIDATES_CACHE_KEY, JSON.stringify(cache));
-    } catch {
-      // ignore quota errors
-    }
-  }
-
-  async function fetchCandidates(jabatan?: string, limit?: number) {
-    setError(null);
-    setPage(1);
-
-    // Tampilkan dari cache instan kalau ada (revalidate di background)
-    const cached = readCache(jabatan, limit);
-    if (cached) {
-      setCandidates(cached);
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
-
-    try {
-      const params = new URLSearchParams();
-      if (jabatan && jabatan !== "All Position") {
-        params.set("jabatan", jabatan);
-        if (limit && limit > 0) params.set("limit", String(limit));
-      }
-      if (iframeConvId) params.set("conversationId", iframeConvId);
-      const url = params.toString()
-        ? `/api/candidates?${params.toString()}`
-        : "/api/candidates";
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.error) {
-        if (!cached) setError("AI sedang tidak tersedia. Coba beberapa saat lagi.");
-      } else {
-        setCandidates(data);
-        writeCache(jabatan, limit, data);
-      }
-    } catch {
-      if (!cached) setError("Gagal terhubung ke server.");
-    } finally {
-      setLoading(false);
-    }
   }
 
   const JABATAN_CACHE_KEY = "wika_jabatan_list_v1";
@@ -160,8 +216,10 @@ export default function Dashboard() {
     } catch {
       // ignore parse errors
     }
-    fetchCandidates();
     fetchJabatanList();
+    return () => {
+      if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -170,38 +228,49 @@ export default function Dashboard() {
 
   const handleFilterChange = (jab: string) => {
     setSelectedJabatan(jab);
-    fetchCandidates(jab);
+    setPage(1);
+    setError(null);
+    if (jab === "All Position") {
+      setCandidates([]);
+      stopLoading();
+      return;
+    }
+    startLoading();
+    setPendingPrompt(`tampilkan top 10 kandidat untuk jabatan ${jab}`);
   };
 
-  function detectRecommendationIntent(
-    message: string
-  ): { jabatan: string; limit?: number } | null {
+  function detectRecommendationIntent(message: string): string | null {
     const lower = message.toLowerCase();
     const trigger = /tampilkan|top\s+\d|rekomendasi|kandidat|cocok|siapa|berikan|list/i;
     if (!trigger.test(lower)) return null;
-
     const matchedJabatan = [...allJabatan]
       .sort((a, b) => b.length - a.length)
       .find((j) => lower.includes(j.toLowerCase()));
-    if (!matchedJabatan) return null;
-
-    const numMatch = message.match(/\b(\d+)\b/);
-    const limit = numMatch ? parseInt(numMatch[1], 10) : undefined;
-
-    return {
-      jabatan: matchedJabatan,
-      limit: limit && limit > 0 && limit <= 50 ? limit : undefined,
-    };
+    return matchedJabatan ?? null;
   }
 
   function handleUserMessageInChat(content: string) {
-    const intent = detectRecommendationIntent(content);
-    if (intent) {
-      const matched =
-        allJabatan.find((j) => j.toLowerCase() === intent.jabatan.toLowerCase()) ??
-        intent.jabatan;
-      setSelectedJabatan(matched);
-      fetchCandidates(matched, intent.limit);
+    const matched = detectRecommendationIntent(content);
+    if (matched) {
+      const synced =
+        allJabatan.find((j) => j.toLowerCase() === matched.toLowerCase()) ?? matched;
+      setSelectedJabatan(synced);
+      setPage(1);
+      startLoading();
+    }
+  }
+
+  function handleAiResponse(content: string) {
+    const parsed = parseCandidatesFromResponse(content, selectedJabatanRef.current);
+    if (parsed.length > 0) {
+      setCandidates(parsed);
+      setPage(1);
+      setError(null);
+      stopLoading();
+    } else if (loading) {
+      // Respons bukan daftar kandidat (mis. analisis paragraf), tapi kita lagi nunggu list.
+      // Stop loading supaya UI tidak menggantung; biarkan candidates lama.
+      stopLoading();
     }
   }
 
@@ -274,7 +343,7 @@ export default function Dashboard() {
               pendingPrompt={pendingPrompt}
               onPromptDelivered={() => setPendingPrompt(null)}
               onUserMessage={handleUserMessageInChat}
-              onConversationReady={(id) => setIframeConvId(id)}
+              onAiResponse={handleAiResponse}
             />
           </div>
         </div>
